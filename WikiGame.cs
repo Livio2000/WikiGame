@@ -22,6 +22,7 @@ namespace WikiGame
         [Test]
         public void OpenWikipediaPage_CheckTitle()
         {
+            var path = new List<string>();
             _driver.Navigate().GoToUrl("https://de.wikipedia.org/wiki/Spezial:Zuf%C3%A4llige_Seite");
             var bodyContent = string.Empty;
             while (!bodyContent.Contains("Philosophie", StringComparison.OrdinalIgnoreCase))
@@ -39,7 +40,13 @@ namespace WikiGame
                     foreach (var link in links)
                     {
                         var href = link.GetAttribute("href");
-                        if (href != null && href.Contains("/wiki/") && !href.Contains("#"))
+                        if (href != null 
+                            && href.Contains("/wiki/") 
+                            && !href.Contains("#") 
+                            && !href.Contains("Datei:")
+                            && !href.Contains("Portal:")
+                            && !href.Contains("_")
+                            && link.Text != firstWikiLink?.Text)
                         {
                             firstWikiLink = link;
                             break;
@@ -47,8 +54,14 @@ namespace WikiGame
                     }
 
                     Assert.IsNotNull(firstWikiLink, "No valid Wikipedia link found in bodyContent.");
+                    path.Add(firstWikiLink.Text);
                     firstWikiLink.Click();
                 }
+            }
+
+            foreach (var pathItem in path)
+            {
+                Console.WriteLine(pathItem);
             }
         }
 
