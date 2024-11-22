@@ -7,6 +7,7 @@ namespace WikiGame
     public class WikiGame
     {
         private IWebDriver _driver;
+        private readonly IDictionary<string, string> _startAndEndPages = new Dictionary<string, string>();
 
         [SetUp]
         public void SetUp()
@@ -17,10 +18,38 @@ namespace WikiGame
             options.AddArgument("--disable-dev-shm-usage");
             _driver = new ChromeDriver(options);
             _driver.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(10);
+            string projectDir =
+                Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, @"..\..\.."));
+            var path = Path.Combine(projectDir, "Words.csv");
+            using (var reader = new StreamReader(path))
+            {
+                var isHeader = true;
+
+                while (!reader.EndOfStream)
+                {
+                    var line = reader.ReadLine();
+                    if (isHeader)
+                    {
+                        isHeader = false;
+                        continue;
+                    }
+
+                    var values = line.Split(',');
+                    _startAndEndPages.Add(values[0], values[1]);
+                }
+            }
         }
 
         [Test]
-        public void OpenWikipediaPage_CheckTitle()
+        public void PlayGame()
+        {
+            foreach (var startAndEndPage in _startAndEndPages)
+            {
+                OpenWikipediaPage_CheckTitle(startAndEndPage.Key, startAndEndPage.Value);
+            }
+        }
+
+        private void OpenWikipediaPage_CheckTitle(string startPage, string endWord)
         {
             var path = new List<string>();
             _driver.Navigate().GoToUrl("https://de.wikipedia.org/wiki/Spezial:Zuf%C3%A4llige_Seite");
@@ -45,8 +74,9 @@ namespace WikiGame
                             && !href.Contains("#") 
                             && !href.Contains("Datei:")
                             && !href.Contains("Portal:")
-                            && !href.Contains("_")
-                            && link.Text != firstWikiLink?.Text)
+                            && !href.Contains("Hilfe:")
+                            && !href.Contains("Wikipedia:")
+                            && !path.Contains(link.Text))
                         {
                             firstWikiLink = link;
                             break;
